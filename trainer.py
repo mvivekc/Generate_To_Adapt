@@ -64,7 +64,7 @@ class GTA(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_256px')        
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -94,19 +94,6 @@ class GTA(object):
         info = { 
 
             'GTA Val Accuracy': val_acc,
-            #'errD':errD.item(),
-            # 'errD_src_real_c':errD_src_real_c.item(),
-            # 'errD_src_real_s':errD_src_real_s.item(),
-            # 'errD_src_fake_s':errD_src_fake_s.item(),
-            # 'errD_tgt_fake_s':errD_tgt_fake_s.item(),
-            #'errG':errG.item(),
-            # 'errG_c':errG_c.item(),
-            # 'errG_s':errG_s.item(),
-            #'errC':errC.item(),
-            #'errF':errF.item(),
-            # 'errF_fromC':errF_fromC.item(),
-            # 'errF_src_fromD':errF_src_fromD.item(),
-            # 'errF_tgt_fromD':errF_tgt_fromD.item()
         }
 
         for tag, value in info.items():
@@ -329,6 +316,15 @@ class Sourceonly(object):
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
 
+        #print(self.netF)
+        #print(self.netC)
+        # for i, weights in enumerate(list(self.netF.parameters())):
+        #     print('i:',i,'weights:',weights.size())
+        # for i, weights in enumerate(list(self.netC.parameters())):
+        #     print('i:',i,'weights:',weights.size())
+
+
+
         # Weight initialization
         self.netF.apply(utils.weights_init)
         self.netC.apply(utils.weights_init)
@@ -352,7 +348,7 @@ class Sourceonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_256px')        
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -382,19 +378,6 @@ class Sourceonly(object):
         info = { 
 
             'Sourceonly Val Accuracy': val_acc,
-            #'errD':errD.item(),
-            # 'errD_src_real_c':errD_src_real_c.item(),
-            # 'errD_src_real_s':errD_src_real_s.item(),
-            # 'errD_src_fake_s':errD_src_fake_s.item(),
-            # 'errD_tgt_fake_s':errD_tgt_fake_s.item(),
-            #'errG':errG.item(),
-            # 'errG_c':errG_c.item(),
-            # 'errG_s':errG_s.item(),
-            #'errC':errC.item(),
-            #'errF':errF.item(),
-            # 'errF_fromC':errF_fromC.item(),
-            # 'errF_src_fromD':errF_src_fromD.item(),
-            # 'errF_tgt_fromD':errF_tgt_fromD.item()
         }
 
         for tag, value in info.items():
@@ -439,6 +422,8 @@ class Sourceonly(object):
                 
                 self.netC.zero_grad()
                 self.netF.zero_grad()
+                #print("printing shape of src_inputsv:")
+                #print(src_inputsv.shape)
                 outC = self.netC(self.netF(src_inputsv))   
                 #print(src_labelsv.shape)
                 #print(outC.shape)

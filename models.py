@@ -56,48 +56,52 @@ class _netD(nn.Module):
         super(_netD, self).__init__()
         
         self.ndf = opt.ndf
-        self.feature = nn.Sequential(
-            nn.Conv2d(3, self.ndf, 3, 1, 1),            
-            nn.BatchNorm2d(self.ndf),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(2,2),
+        # self.feature = nn.Sequential(
+        #     nn.Conv2d(3, self.ndf, 3, 1, 1),            
+        #     nn.BatchNorm2d(self.ndf),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(2,2),
 
-            nn.Conv2d(self.ndf, self.ndf*2, 3, 1, 1),         
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(2,2),
+        #     nn.Conv2d(self.ndf, self.ndf*2, 3, 1, 1),         
+        #     nn.BatchNorm2d(self.ndf*2),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(2,2),
             
 
-            nn.Conv2d(self.ndf*2, self.ndf*4, 3, 1, 1),           
-            nn.BatchNorm2d(self.ndf*4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(2,2),
+        #     nn.Conv2d(self.ndf*2, self.ndf*4, 3, 1, 1),           
+        #     nn.BatchNorm2d(self.ndf*4),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(2,2),
             
-            nn.Conv2d(self.ndf*4, self.ndf*2, 3, 1, 1),           
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
+        #     nn.Conv2d(self.ndf*4, self.ndf*2, 3, 1, 1),           
+        #     nn.BatchNorm2d(self.ndf*2),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(4,4),
 
-            #required for 64
+        #     #required for 64
 
-            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
-            #required for 128
+        #     nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
+        #     nn.BatchNorm2d(self.ndf*2),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(4,4),
+        #     #required for 128
 
-            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
-            #required for 256
+        #     nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
+        #     nn.BatchNorm2d(self.ndf*2),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(4,4),
+        #     #required for 256
 
-            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
-        )
-
+        #     nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
+        #     nn.BatchNorm2d(self.ndf*2),
+        #     nn.LeakyReLU(0.2, inplace=True),
+        #     nn.MaxPool2d(4,4),
+        # )
+        self.feature = models.resnet18(pretrained=True)
+        num_ftrs = self.feature.fc.in_features
+        for param in self.feature.parameters():
+            param.requires_grad = False
+        self.feature.fc = nn.Linear(512, self.ndf*2)
         self.classifier_c = nn.Sequential(nn.Linear(self.ndf*2, nclasses))              
         self.classifier_s = nn.Sequential(
         						nn.Linear(self.ndf*2, 1), 
@@ -161,28 +165,29 @@ class _netF(nn.Module):
 
 
         # )
-        # self.feature = models.resnet18(pretrained=True)
-        # num_ftrs = self.feature.fc.in_features
-        # for param in self.feature.parameters():
-        #      param.requires_grad = False
-        # self.feature.fc = nn.Linear(num_ftrs, opt.classes)
+        #resnet18 = models.resnet18(pretrained=True)
+        #self.feature = torch.nn.Sequential(*(list(resnet18.children())[:-1]))
+        self.feature = models.resnet18(pretrained=True)
+        num_ftrs = self.feature.fc.in_features
+        for param in self.feature.parameters():
+            param.requires_grad = False
+        #self.feature.fc = nn.Linear(num_ftrs, opt.classes)
+        self.feature.fc = nn.Linear(512, self.ndf*2)
 
 
     def forward(self, input):  
         # print("NetF forward")
         # print(input.shape)
         #output = self.feature(input)
-        #print("printing F shape")
-        #print(output.shape)
+        #print("printing F input shape")
+        #print(input.shape)
         #print(self.ndf)
+        output = self.feature(input)
         #print("printing F output shape")
-        #print(output.view(-1, 2*self.ndf).shape)
-        self.feature = models.resnet18(pretrained=True)
-        num_ftrs = self.feature.fc.in_features
-        for param in self.feature.parameters():
-             param.requires_grad = False
-        self.feature.fc = nn.Linear(num_ftrs, opt.classes)
-        return self.feature
+        #print(output.shape)
+        #return output.view(-1, 2*self.ndf)
+        return output
+
 
 """
 Classifier network
@@ -191,25 +196,27 @@ class _netC(nn.Module):
     def __init__(self, opt, nclasses):
         super(_netC, self).__init__()
         #print("NetC init")
-        # self.ndf = opt.ndf
-        # self.main = models.resnet18(pretrained=True)
-        # num_ftrs = self.main.fc.in_features
-        # for param in self.main.parameters():
-        #      param.requires_grad = False
-        # self.main.fc = nn.Linear(num_ftrs, nclasses)
+        self.ndf = opt.ndf
+
+        #self.main = models.resnet18(pretrained=True)
+        #num_ftrs = self.main.fc.in_features
+        #for param in self.main.parameters():
+        #    param.requires_grad = False
+        #self.feature.fc = nn.Linear(num_ftrs, opt.classes)
+        #hardcode it
+        #self.main.fc = nn.Linear(512, 24)
+        self.main = nn.Sequential(          
+           nn.Linear(2*self.ndf, 2*self.ndf),
+           nn.ReLU(inplace=True),
+           nn.Linear(2*self.ndf, nclasses),                         
+       )
 
     def forward(self, input):       
-        #print("NetC forward")
+        #print("NetC input forward")
         #print(input.shape)
         #output = self.main(input)
         #print("printing C output shape")
+        output = self.main(input)
         #print(output.shape)
-
-        self.ndf = opt.ndf
-        self.main = models.resnet18(pretrained=True)
-        num_ftrs = self.main.fc.in_features
-        for param in self.main.parameters():
-             param.requires_grad = False
-        self.main.fc = nn.Linear(num_ftrs, nclasses)
-        return self.main
+        return output
 
