@@ -61,10 +61,50 @@ class GTA(object):
     """
     Validation function
     """
+
+    def validateTrain(self, epoch):
+        #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
+        #logger = Logger('./logs/validation_accuracies_asl_128px')        
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
+        #logger = Logger('./logs/digits_32px_2')        
+        #logger = Logger('./logs/validation_accuracies_asl_32px')
+        
+        self.netF.eval()
+        self.netC.eval()
+        total = 0
+        correct = 0
+    
+        # Testing the model
+        for i, datas in enumerate(self.source_trainloader):
+            inputs, labels = datas         
+            inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
+
+            outC = self.netC(self.netF(inputv))
+            _, predicted = torch.max(outC.data, 1)        
+            total += labels.size(0)
+            correct += ((predicted == labels.cuda()).sum())
+            
+        val_acc = 100*float(correct)/total
+        print('%s| Epoch: %d, Train Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
+        
+        # ================================================================== #
+        #                        Tensorboard Logging                         #
+        # ================================================================== #
+
+        # 1. Log scalar values (scalar summary)
+        info = { 
+
+            'GTA Train Accuracy': val_acc,
+        }
+
+        for tag, value in info.items():
+            logger.scalar_summary(tag, value, epoch+1)
+
+
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_256px')        
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -94,19 +134,6 @@ class GTA(object):
         info = { 
 
             'GTA Val Accuracy': val_acc,
-            #'errD':errD.item(),
-            # 'errD_src_real_c':errD_src_real_c.item(),
-            # 'errD_src_real_s':errD_src_real_s.item(),
-            # 'errD_src_fake_s':errD_src_fake_s.item(),
-            # 'errD_tgt_fake_s':errD_tgt_fake_s.item(),
-            #'errG':errG.item(),
-            # 'errG_c':errG_c.item(),
-            # 'errG_s':errG_s.item(),
-            #'errC':errC.item(),
-            #'errF':errF.item(),
-            # 'errF_fromC':errF_fromC.item(),
-            # 'errF_src_fromD':errF_src_fromD.item(),
-            # 'errF_tgt_fromD':errF_tgt_fromD.item()
         }
 
         for tag, value in info.items():
@@ -258,60 +285,7 @@ class GTA(object):
                 if self.opt.lrd:
                     self.optimizerD = utils.exp_lr_scheduler(self.optimizerD, epoch, self.opt.lr, self.opt.lrd, curr_iter)    
                     self.optimizerF = utils.exp_lr_scheduler(self.optimizerF, epoch, self.opt.lr, self.opt.lrd, curr_iter)
-                    self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)                  
-
-            # code to add multiple plots on the same graph
-            # writer_1 = tf.summary.FileWriter("./logs/plot_1")
-            # writer_2 = tf.summary.FileWriter("./logs/plot_2")
-
-            # log_var = tf.Variable(0.0)
-            # tf.summary.scalar("loss", log_var)
-
-            # write_op = tf.summary.merge_all()
-
-            # session = tf.InteractiveSession()
-            # session.run(tf.global_variables_initializer())
-
-            # for i in range(100):
-            #     # for writer 1
-            #     summary = session.run(write_op, {log_var: random.rand()})
-            #     writer_1.add_summary(summary, i)
-            #     writer_1.flush()
-
-            #     # for writer 2
-            #     summary = session.run(write_op, {log_var: random.rand()})
-            #     writer_2.add_summary(summary, i)
-            #     writer_2.flush()
-
-
-            # for tag, value in info.items():
-            #     logger.scalar_summary(tag, value, epoch+1)
-
-            # # 2. Log values and gradients of the parameters (histogram summary)
-            # for tag, value in self.netG.named_parameters():
-            #     tag = tag.replace('.', '/')
-            #     logger.histo_summary(tag, value.data.cpu().numpy(), epoch+1)
-            #     logger.histo_summary(tag+'/gradG', value.grad.data.cpu().numpy(), epoch+1)
-            # for tag, value in self.netF.named_parameters():
-            #     tag = tag.replace('.', '/')
-            #     logger.histo_summary(tag, value.data.cpu().numpy(), epoch+1)
-            #     logger.histo_summary(tag+'/gradF', value.grad.data.cpu().numpy(), epoch+1)
-            # for tag, value in self.netC.named_parameters():
-            #     tag = tag.replace('.', '/')
-            #     logger.histo_summary(tag, value.data.cpu().numpy(), epoch+1)
-            #     logger.histo_summary(tag+'/gradC', value.grad.data.cpu().numpy(), epoch+1)
-            # for tag, value in self.netD.named_parameters():
-            #     tag = tag.replace('.', '/')
-            #     logger.histo_summary(tag, value.data.cpu().numpy(), epoch+1)
-            #     logger.histo_summary(tag+'/gradD', value.grad.data.cpu().numpy(), epoch+1)
-
-            # 3. Log training images (image summary)
-            #info = { 'images': images.view(-1, 28, 28)[:10].cpu().numpy() }
-
-            #for tag, images in info.items():
-            #    logger.image_summary(tag, images, epoch+1)
-            
-            # Validate every epoch
+                    self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)   
             self.validate(epoch+1)
 
 
@@ -328,6 +302,15 @@ class Sourceonly(object):
         self.nclasses = nclasses
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
+
+        #print(self.netF)
+        #print(self.netC)
+        # for i, weights in enumerate(list(self.netF.parameters())):
+        #     print('i:',i,'weights:',weights.size())
+        # for i, weights in enumerate(list(self.netC.parameters())):
+        #     print('i:',i,'weights:',weights.size())
+
+
 
         # Weight initialization
         self.netF.apply(utils.weights_init)
@@ -352,7 +335,7 @@ class Sourceonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_256px')        
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -382,19 +365,6 @@ class Sourceonly(object):
         info = { 
 
             'Sourceonly Val Accuracy': val_acc,
-            #'errD':errD.item(),
-            # 'errD_src_real_c':errD_src_real_c.item(),
-            # 'errD_src_real_s':errD_src_real_s.item(),
-            # 'errD_src_fake_s':errD_src_fake_s.item(),
-            # 'errD_tgt_fake_s':errD_tgt_fake_s.item(),
-            #'errG':errG.item(),
-            # 'errG_c':errG_c.item(),
-            # 'errG_s':errG_s.item(),
-            #'errC':errC.item(),
-            #'errF':errF.item(),
-            # 'errF_fromC':errF_fromC.item(),
-            # 'errF_src_fromD':errF_src_fromD.item(),
-            # 'errF_tgt_fromD':errF_tgt_fromD.item()
         }
 
         for tag, value in info.items():
@@ -407,7 +377,41 @@ class Sourceonly(object):
             self.best_val = val_acc
             torch.save(self.netF.state_dict(), '%s/models/model_best_netF_sourceonly.pth' %(self.opt.outf))
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
+
+    def validateTrain(self, epoch):
+        logger = Logger('../../Generate_To_Adapt/logs/deep_trials_1')        
+
+        self.netF.eval()
+        self.netC.eval()
+        total = 0
+        correct = 0
+        
+        # Testing the model
+        for i, datas in enumerate(self.source_trainloader):
+            inputs, labels = datas
+            inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
+
+            outC = self.netC(self.netF(inputv))
+            _, predicted = torch.max(outC.data, 1)        
+            total += labels.size(0)
+            correct += ((predicted == labels.cuda()).sum())
             
+        val_acc = 100*float(correct)/total
+        print('%s| Epoch: %d, Train Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
+        
+        # ================================================================== #
+        #                        Tensorboard Logging                         #
+        # ================================================================== #
+
+        # 1. Log scalar values (scalar summary)
+        info = { 
+
+            'Sourceonly Train Accuracy': val_acc,
+        }    
+
+        for tag, value in info.items():
+            logger.scalar_summary(tag, value, epoch+1)
+
     
     """
     Train function
@@ -439,6 +443,8 @@ class Sourceonly(object):
                 
                 self.netC.zero_grad()
                 self.netF.zero_grad()
+                #print("printing shape of src_inputsv:")
+                #print(src_inputsv.shape)
                 outC = self.netC(self.netF(src_inputsv))   
                 #print(src_labelsv.shape)
                 #print(outC.shape)
@@ -455,4 +461,7 @@ class Sourceonly(object):
                     self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)                  
             
             # Validate every epoch
+
+            self.validateTrain(epoch)
+
             self.validate(epoch)
