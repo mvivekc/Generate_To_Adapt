@@ -9,6 +9,7 @@ from torchvision import transforms
 from logger import Logger
 import numpy as np
 import models
+from wgangp import WGAN
 import utils
 
 class GTA(object):
@@ -22,6 +23,15 @@ class GTA(object):
         self.mean = mean
         self.std = std
         self.best_val = 0
+        self.wgan = WGAN(
+            z_size=opt.batchSize,
+            image_size=opt.imageSize,
+            image_channel_size=3,
+            c_channel_size=3,
+            g_channel_size=3,
+            opt = opt
+        )
+
         
         # Defining networks and optimizers
         self.nclasses = nclasses
@@ -29,6 +39,18 @@ class GTA(object):
         self.netD = models._netD(opt, nclasses)
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
+
+
+        print("printing critic")
+        print(self.netD)
+        for i, weights in enumerate(list(self.netD.parameters())):
+            print('i:',i,'weights:',weights.size())
+        print("printing generator")
+        print(self.netG)
+        for i, weights in enumerate(list(self.netG.parameters())):
+            print('i:',i,'weights:',weights.size())
+        return
+
 
         # Weight initialization
         self.netG.apply(utils.weights_init)
@@ -235,6 +257,20 @@ class GTA(object):
                 errD = errD_src_real_c + errD_src_real_s + errD_src_fake_s + errD_tgt_fake_s
                 errD.backward(retain_graph=True)
                 self.optimizerD.step()
+
+                ## added as part of wgan changes
+
+                # x = Variable(x).cuda() if cuda else Variable(x)
+                
+                # # run the critic and backpropagate the errors.
+                # critic_optimizer.zero_grad()
+                # z = model.sample_noise(batch_size)
+                # c_loss, g = model.c_loss(x, z, return_g=True)
+                # c_loss_gp = c_loss + model.gradient_penalty(x, g, lamda=lamda)
+                # c_loss_gp.backward()
+                # critic_optimizer.step()
+
+                ## added as part of wgan changes
                 
 
                 # Updating G network
@@ -284,6 +320,59 @@ class GTA(object):
                     self.optimizerD = utils.exp_lr_scheduler(self.optimizerD, epoch, self.opt.lr, self.opt.lrd, curr_iter)    
                     self.optimizerF = utils.exp_lr_scheduler(self.optimizerF, epoch, self.opt.lr, self.opt.lrd, curr_iter)
                     self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)   
+
+
+
+                
+
+                # # run the generator and backpropagate the errors.
+                # generator_optimizer.zero_grad()
+                # z = model.sample_noise(batch_size)
+                # g_loss = model.g_loss(z)
+                # g_loss.backward()
+                # generator_optimizer.step()
+
+                # # update the progress.
+                # data_stream.set_description((
+                #     'epoch: {epoch}/{epochs} | '
+                #     'iteration: {iteration} | '
+                #     'progress: [{trained}/{total}] ({progress:.0f}%) | '
+                #     'loss => '
+                #     'g: {g_loss:.4} / '
+                #     'w: {w_dist:.4}'
+                # ).format(
+                #     epoch=epoch,
+                #     epochs=epochs,
+                #     iteration=iteration,
+                #     trained=batch_index*batch_size,
+                #     total=dataset_size,
+                #     progress=(100.*batch_index/dataset_batches),
+                #     g_loss=g_loss.data[0],
+                #     w_dist=-c_loss.data[0],
+                # ))
+
+                # # send losses to the visdom server.
+                # if iteration % loss_log_interval == 0:
+                #     visual.visualize_scalar(
+                #         -c_loss.data[0],
+                #         'estimated wasserstein distance between x and g',
+                #         iteration=iteration,
+                #         env=model.name
+                #     )
+                #     visual.visualize_scalar(
+                #         g_loss.data[0],
+                #         'generator loss',
+                #         iteration=iteration,
+                #         env=model.name
+                #     )
+
+                # # send sample images to the visdom server.
+                # if iteration % image_log_interval == 0:
+                #     visual.visualize_images(
+                #         model.sample_image(sample_size).data,
+                #         'generated samples',
+                #         env=model.name
+                #     )
             self.validate(epoch+1)
 
 
@@ -300,14 +389,6 @@ class Sourceonly(object):
         self.nclasses = nclasses
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
-
-        #print(self.netF)
-        #print(self.netC)
-        # for i, weights in enumerate(list(self.netF.parameters())):
-        #     print('i:',i,'weights:',weights.size())
-        # for i, weights in enumerate(list(self.netC.parameters())):
-        #     print('i:',i,'weights:',weights.size())
-
 
 
         # Weight initialization
