@@ -95,11 +95,10 @@ class _netD(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(4,4),
         )
-
         self.classifier_c = nn.Sequential(nn.Linear(self.ndf*2, nclasses))              
         self.classifier_s = nn.Sequential(
         						nn.Linear(self.ndf*2, 1), 
-        						nn.Sigmoid())              
+        						nn.Sigmoid())
 
     def forward(self, input):       
         #print("input D .shape:")
@@ -160,16 +159,20 @@ class _netF(nn.Module):
 
         )
 
-    def forward(self, input):   
+
+    def forward(self, input):  
         # print("NetF forward")
         # print(input.shape)
-        output = self.feature(input)
-        #print("printing F shape")
-        #print(output.shape)
+        #output = self.feature(input)
+        #print("printing F input shape")
+        #print(input.shape)
         #print(self.ndf)
+        output = self.feature(input)
         #print("printing F output shape")
-        #print(output.view(-1, 2*self.ndf).shape)
+        #print(output.shape)
+        #return output
         return output.view(-1, 2*self.ndf)
+
 
 """
 Classifier network
@@ -180,16 +183,17 @@ class _netC(nn.Module):
         #print("NetC init")
         self.ndf = opt.ndf
         self.main = nn.Sequential(          
-            nn.Linear(2*self.ndf, 2*self.ndf),
-            nn.ReLU(inplace=True),
-            nn.Linear(2*self.ndf, nclasses),                         
-        )
+           nn.Linear(2*self.ndf, 2*self.ndf),
+           nn.ReLU(inplace=True),
+           nn.Linear(2*self.ndf, nclasses),                         
+       )
 
     def forward(self, input):       
-        #print("NetC forward")
+        #print("NetC input forward")
         #print(input.shape)
-        output = self.main(input)
+        #output = self.main(input)
         #print("printing C output shape")
+        output = self.main(input)
         #print(output.shape)
         return output
 

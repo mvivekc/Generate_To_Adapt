@@ -77,6 +77,7 @@ def main():
     source_train_root = os.path.join(opt.dataroot, 'svhn/trainset')
     source_val_root = os.path.join(opt.dataroot, 'svhn/testset')
     target_root = os.path.join(opt.dataroot, 'mnist/trainset')
+    target_val_root = os.path.join(opt.dataroot, 'mnist/testset')
     
     transform_source = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
     transform_target = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
@@ -84,6 +85,7 @@ def main():
     source_train = dset.ImageFolder(root=source_train_root, transform=transform_source)
     source_val = dset.ImageFolder(root=source_val_root, transform=transform_source)
     target_train = dset.ImageFolder(root=target_root, transform=transform_target)
+    target_val = dset.ImageFolder(root=target_val_root, transform=transform_target)
 
 
     #validation_split = .2
@@ -101,6 +103,7 @@ def main():
     source_trainloader = torch.utils.data.DataLoader(source_train, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
     source_valloader = torch.utils.data.DataLoader(source_val, batch_size=opt.batchSize, shuffle=False, num_workers=2, drop_last=False)
     targetloader = torch.utils.data.DataLoader(target_train, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
+    target_valloader = torch.utils.data.DataLoader(target_val, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
 
     nclasses = len(source_train.classes)
     print(nclasses)
@@ -112,6 +115,9 @@ def main():
     elif opt.method == 'sourceonly':
         sourceonly_trainer = trainer.Sourceonly(opt, nclasses, source_trainloader, source_valloader)
         sourceonly_trainer.train()
+    elif opt.method == 'targetonly':
+        targetonly_trainer = trainer.Targetonly(opt, nclasses, targetloader, target_valloader)
+        targetonly_trainer.train()
     else:
         raise ValueError('method argument should be GTA or sourceonly')
 
