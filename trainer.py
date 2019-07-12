@@ -571,13 +571,13 @@ class Targetonly(object):
         for tag, value in info.items():
             logger.scalar_summary(tag, value, epoch+1)
         # Saving checkpoints
-        torch.save(self.netF.state_dict(), '%s/models/netF_sourceonly.pth' %(self.opt.outf))
-        torch.save(self.netC.state_dict(), '%s/models/netC_sourceonly.pth' %(self.opt.outf))
+        torch.save(self.netF.state_dict(), '%s/models/netF_targetonly.pth' %(self.opt.outf))
+        torch.save(self.netC.state_dict(), '%s/models/netC_targetonly.pth' %(self.opt.outf))
         
         if val_acc>self.best_val:
             self.best_val = val_acc
-            torch.save(self.netF.state_dict(), '%s/models/model_best_netF_sourceonly.pth' %(self.opt.outf))
-            torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
+            torch.save(self.netF.state_dict(), '%s/models/model_best_netF_targetonly.pth' %(self.opt.outf))
+            torch.save(self.netC.state_dict(), '%s/models/model_best_netC_targetonly.pth' %(self.opt.outf))
 
     def validateTrain(self, epoch):
         logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
