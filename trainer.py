@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable, Function
+import os
 import torch.optim as optim
 import torchvision.utils as vutils
 import itertools, datetime
@@ -36,6 +37,17 @@ class GTA(object):
         self.netF.apply(utils.weights_init)
         self.netC.apply(utils.weights_init)
 
+        if opt.loadExisting != 0: 
+            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
+            netG_path = os.path.join(opt.checkpoint_dir, 'netG.pth')
+            netD_path = os.path.join(opt.checkpoint_dir, 'netD.pth')
+            self.netF.load_state_dict(torch.load(netF_path))
+            self.netC.load_state_dict(torch.load(netC_path))
+            self.netG.load_state_dict(torch.load(netG_path))
+            self.netD.load_state_dict(torch.load(netD_path))        
+
+
         # Defining loss criterions
         self.criterion_c = nn.CrossEntropyLoss()
         self.criterion_s = nn.BCELoss()
@@ -65,7 +77,7 @@ class GTA(object):
     def validateTrain(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -75,7 +87,7 @@ class GTA(object):
         correct = 0
     
         # Testing the model
-        for i, datas in enumerate(self.source_trainloader):
+        for i, datas in enumerate(self.source_valloader):
             inputs, labels = datas         
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
@@ -104,7 +116,7 @@ class GTA(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -142,11 +154,15 @@ class GTA(object):
         # Saving checkpoints
         torch.save(self.netF.state_dict(), '%s/models/netF.pth' %(self.opt.outf))
         torch.save(self.netC.state_dict(), '%s/models/netC.pth' %(self.opt.outf))
+        torch.save(self.netG.state_dict(), '%s/models/netG.pth' %(self.opt.outf))
+        torch.save(self.netD.state_dict(), '%s/models/netD.pth' %(self.opt.outf))
         
         if val_acc>self.best_val:
             self.best_val = val_acc
             torch.save(self.netF.state_dict(), '%s/models/model_best_netF.pth' %(self.opt.outf))
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC.pth' %(self.opt.outf))
+            torch.save(self.netG.state_dict(), '%s/models/model_best_netG.pth' %(self.opt.outf))
+            torch.save(self.netD.state_dict(), '%s/models/model_best_netD.pth' %(self.opt.outf))
             
             
     """
@@ -155,6 +171,11 @@ class GTA(object):
     def train(self):
         
         curr_iter = 0
+        one = torch.FloatTensor([1])
+        mone = one * -1
+        if self.cuda:
+            one = one.cuda(self.cuda_index)
+            mone = mone.cuda(self.cuda_index)
         
         reallabel = torch.FloatTensor(self.opt.batchSize).fill_(self.real_label_val)
         fakelabel = torch.FloatTensor(self.opt.batchSize).fill_(self.fake_label_val)
@@ -185,13 +206,18 @@ class GTA(object):
                 for num in range(self.opt.batchSize):
                     labels_onehot[num, src_labels[num]] = 1
                 src_labels_onehot = torch.from_numpy(labels_onehot)
-                #print(src_labels_onehot)
+                print("src_labels_onehot")
+                print(src_labels_onehot.shape)
+                print(src_labels_onehot)
 
                 labels_onehot = np.zeros((self.opt.batchSize, self.nclasses+1), dtype=np.float32)
                 for num in range(self.opt.batchSize):
                     labels_onehot[num, self.nclasses] = 1
                 tgt_labels_onehot = torch.from_numpy(labels_onehot)
-                #print(tgt_labels_onehot)
+                print("tgt_labels_onehot")
+                print(tgt_labels_onehot.shape)
+                print(tgt_labels_onehot)
+                return
                 
                 if self.opt.gpu>=0:
                     src_inputs, src_labels = src_inputs.cuda(), src_labels.cuda()
@@ -214,6 +240,7 @@ class GTA(object):
                 # Updating D network
                 
                 self.netD.zero_grad()
+                print("src_inputsv:",src_inputsv)
                 src_emb = self.netF(src_inputsv)
                 src_emb_cat = torch.cat((src_labels_onehotv, src_emb), 1)
                 src_gen = self.netG(src_emb_cat)
@@ -225,14 +252,17 @@ class GTA(object):
                 src_realoutputD_s, src_realoutputD_c = self.netD(src_inputs_unnormv)
                 errD_src_real_s = self.criterion_s(src_realoutputD_s, reallabelv) 
                 errD_src_real_c = self.criterion_c(src_realoutputD_c, src_labelsv) 
+                print("src_realoutputD_s.shape:",src_realoutputD_s.shape)
+                print("errD_src_real_c.shape:",errD_src_real_c.shape)
 
                 src_fakeoutputD_s, src_fakeoutputD_c = self.netD(src_gen)
                 errD_src_fake_s = self.criterion_s(src_fakeoutputD_s, fakelabelv)
 
-                tgt_fakeoutputD_s, tgt_fakeoutputD_c = self.netD(tgt_gen)          
+                tgt_fakeoutputD_s, tgt_fakeoutputD_c = self.netD(tgt_gen)
                 errD_tgt_fake_s = self.criterion_s(tgt_fakeoutputD_s, fakelabelv)
 
-                errD = errD_src_real_c + errD_src_real_s + errD_src_fake_s + errD_tgt_fake_s
+                errD = errD_src_real_c + errD_src_real_s
+                errD += (errD_tgt_fake_s - errD_src_fake_s)
                 errD.backward(retain_graph=True)
                 self.optimizerD.step()
                 
@@ -284,6 +314,8 @@ class GTA(object):
                     self.optimizerD = utils.exp_lr_scheduler(self.optimizerD, epoch, self.opt.lr, self.opt.lrd, curr_iter)    
                     self.optimizerF = utils.exp_lr_scheduler(self.optimizerF, epoch, self.opt.lr, self.opt.lrd, curr_iter)
                     self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)   
+
+            self.validateTrain(epoch+1)
             self.validate(epoch+1)
 
 
@@ -314,6 +346,14 @@ class Sourceonly(object):
         self.netF.apply(utils.weights_init)
         self.netC.apply(utils.weights_init)
 
+
+        if opt.loadExisting != 0: 
+            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
+            self.netF.load_state_dict(torch.load(netF_path))
+            self.netC.load_state_dict(torch.load(netC_path))
+        
+
         # Defining loss criterions
         self.criterion = nn.CrossEntropyLoss()
 
@@ -333,7 +373,7 @@ class Sourceonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -377,7 +417,7 @@ class Sourceonly(object):
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
 
     def validateTrain(self, epoch):
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
 
         self.netF.eval()
         self.netC.eval()
@@ -510,7 +550,7 @@ class Targetonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -554,7 +594,7 @@ class Targetonly(object):
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
 
     def validateTrain(self, epoch):
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_resume_1')        
 
         self.netF.eval()
         self.netC.eval()
