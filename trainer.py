@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable, Function
+import os
 import torch.optim as optim
 import torchvision.utils as vutils
 import itertools, datetime
@@ -36,6 +37,17 @@ class GTA(object):
         self.netF.apply(utils.weights_init)
         self.netC.apply(utils.weights_init)
 
+        if opt.loadExisting != 0: 
+            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
+            netG_path = os.path.join(opt.checkpoint_dir, 'netG.pth')
+            netD_path = os.path.join(opt.checkpoint_dir, 'netD.pth')
+            self.netF.load_state_dict(torch.load(netF_path))
+            self.netC.load_state_dict(torch.load(netC_path))
+            self.netG.load_state_dict(torch.load(netG_path))
+            self.netD.load_state_dict(torch.load(netD_path))        
+
+
         # Defining loss criterions
         self.criterion_c = nn.CrossEntropyLoss()
         self.criterion_s = nn.BCELoss()
@@ -65,7 +77,7 @@ class GTA(object):
     def validateTrain(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -75,7 +87,7 @@ class GTA(object):
         correct = 0
     
         # Testing the model
-        for i, datas in enumerate(self.source_trainloader):
+        for i, datas in enumerate(self.source_valloader):
             inputs, labels = datas         
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
@@ -104,7 +116,7 @@ class GTA(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -142,11 +154,15 @@ class GTA(object):
         # Saving checkpoints
         torch.save(self.netF.state_dict(), '%s/models/netF.pth' %(self.opt.outf))
         torch.save(self.netC.state_dict(), '%s/models/netC.pth' %(self.opt.outf))
+        torch.save(self.netG.state_dict(), '%s/models/netG.pth' %(self.opt.outf))
+        torch.save(self.netD.state_dict(), '%s/models/netD.pth' %(self.opt.outf))
         
         if val_acc>self.best_val:
             self.best_val = val_acc
             torch.save(self.netF.state_dict(), '%s/models/model_best_netF.pth' %(self.opt.outf))
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC.pth' %(self.opt.outf))
+            torch.save(self.netG.state_dict(), '%s/models/model_best_netG.pth' %(self.opt.outf))
+            torch.save(self.netD.state_dict(), '%s/models/model_best_netD.pth' %(self.opt.outf))
             
             
     """
@@ -284,6 +300,8 @@ class GTA(object):
                     self.optimizerD = utils.exp_lr_scheduler(self.optimizerD, epoch, self.opt.lr, self.opt.lrd, curr_iter)    
                     self.optimizerF = utils.exp_lr_scheduler(self.optimizerF, epoch, self.opt.lr, self.opt.lrd, curr_iter)
                     self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)   
+
+            self.validateTrain(epoch+1)
             self.validate(epoch+1)
 
 
@@ -314,6 +332,14 @@ class Sourceonly(object):
         self.netF.apply(utils.weights_init)
         self.netC.apply(utils.weights_init)
 
+
+        if opt.loadExisting != 0: 
+            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
+            self.netF.load_state_dict(torch.load(netF_path))
+            self.netC.load_state_dict(torch.load(netC_path))
+        
+
         # Defining loss criterions
         self.criterion = nn.CrossEntropyLoss()
 
@@ -333,7 +359,7 @@ class Sourceonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -377,7 +403,7 @@ class Sourceonly(object):
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
 
     def validateTrain(self, epoch):
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
 
         self.netF.eval()
         self.netC.eval()
@@ -510,7 +536,7 @@ class Targetonly(object):
     def validate(self, epoch):
         #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
         #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
         #logger = Logger('./logs/digits_32px_2')        
         #logger = Logger('./logs/validation_accuracies_asl_32px')
         
@@ -554,7 +580,7 @@ class Targetonly(object):
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
 
     def validateTrain(self, epoch):
-        logger = Logger('../../Generate_To_Adapt/logs/asl_256_small_target')        
+        logger = Logger('../../Generate_To_Adapt/logs/small_target_300spc')
 
         self.netF.eval()
         self.netC.eval()

@@ -35,6 +35,8 @@ def main():
     parser.add_argument('--adv_weight', type=float, default = 0.1, help='weight for adv loss')
     parser.add_argument('--lrd', type=float, default=0.0001, help='learning rate decay, default=0.0002')
     parser.add_argument('--alpha', type=float, default = 0.3, help='multiplicative factor for target adv. loss')
+    parser.add_argument('--loadExisting', type=int, default=0, help='Load existing model and resume training')
+    parser.add_argument('--checkpoint_dir', default='results/models', help='folder to load model checkpoints from')
 
     opt = parser.parse_args()
     print(opt)
