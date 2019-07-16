@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--dataroot', required=True, help='path to source dataset')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
-    parser.add_argument('--imageSize', type=int, default=32, help='the height / width of the input image to network')
+    parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
     parser.add_argument('--nz', type=int, default=512, help='size of the latent z vector')
     parser.add_argument('--ngf', type=int, default=64, help='Number of filters to use in the generator network')
     parser.add_argument('--ndf', type=int, default=64, help='Number of filters to use in the discriminator network')
@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--checkpoint_dir', default='results/models', help='folder to load model checkpoints from')
     parser.add_argument('--method', default='GTA', help='Method to evaluate| GTA, sourceonly')
     parser.add_argument('--model_best', type=int, default=0, help='Flag to specify whether to use the best validation model or last checkpoint| 1-model best, 0-current checkpoint')
+    parser.add_argument('--load_from_existing', type=int, default=0, help='Load existing model and resume training')
 
     opt = parser.parse_args()
 

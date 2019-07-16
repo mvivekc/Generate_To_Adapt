@@ -76,7 +76,7 @@ class GTA(object):
     """
 
     def trainAcc(self, epoch):
-        logger = Logger('logs/small_target_100spc/train')
+        logger = Logger('logs/%s/train' %(self.opt.logFolder))
         
         self.netF.eval()
         self.netC.eval()
@@ -85,7 +85,7 @@ class GTA(object):
     
         # Testing the model
         for i, datas in enumerate(self.source_trainloader):
-            inputs, labels = datas         
+            inputs, labels = datas
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
             outC = self.netC(self.netF(inputv))
@@ -107,7 +107,7 @@ class GTA(object):
 
 
     def validateAcc(self, epoch):
-        logger = Logger('logs/small_target_100spc/val')
+        logger = Logger('logs/%s/val' %(self.opt.logFolder))
         
         self.netF.eval()
         self.netC.eval()
@@ -116,7 +116,7 @@ class GTA(object):
     
         # Testing the model
         for i, datas in enumerate(self.target_valloader):
-            inputs, labels = datas         
+            inputs, labels = datas
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
             outC = self.netC(self.netF(inputv))
@@ -342,7 +342,7 @@ class Sourceonly(object):
     Validation function
     """
     def validateAcc(self, epoch):
-        logger = Logger('logs/small_target_100spc/val')
+        logger = Logger('logs/%s/val' %(self.opt.logFolder))
         
         self.netF.eval()
         self.netC.eval()
@@ -351,7 +351,7 @@ class Sourceonly(object):
     
         # Testing the model
         for i, datas in enumerate(self.source_valloader):
-            inputs, labels = datas         
+            inputs, labels = datas
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
             outC = self.netC(self.netF(inputv))
@@ -382,7 +382,7 @@ class Sourceonly(object):
 
 
     def trainAcc(self, epoch):
-        logger = Logger('logs/small_target_100spc/train')
+        logger = Logger('logs/%s/train' %(self.opt.logFolder))
         self.netC.eval()
         total = 0
         correct = 0
@@ -428,23 +428,16 @@ class Sourceonly(object):
                 ###########################
                 
                 src_inputs, src_labels = datas
-                #print(src_inputs)
-                #print(src_inputs.shape)
                 if self.opt.gpu>=0:
                     src_inputs, src_labels = src_inputs.cuda(), src_labels.cuda()
                 src_inputsv, src_labelsv = Variable(src_inputs), Variable(src_labels)
-                #print(src_inputsv.shape)
                 ###########################
                 # Updates
                 ###########################
                 
                 self.netC.zero_grad()
                 self.netF.zero_grad()
-                #print("printing shape of src_inputsv:")
-                #print(src_inputsv.shape)
-                outC = self.netC(self.netF(src_inputsv))   
-                #print(src_labelsv.shape)
-                #print(outC.shape)
+                outC = self.netC(self.netF(src_inputsv))
                 loss = self.criterion(outC, src_labelsv)
                 loss.backward()    
                 self.optimizerC.step()
