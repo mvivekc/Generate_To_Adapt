@@ -78,7 +78,7 @@ def main():
 
     source_train_root = os.path.join(opt.dataroot, 'svhn/trainset')
     source_val_root = os.path.join(opt.dataroot, 'svhn/testset')
-    target_root = os.path.join(opt.dataroot, 'mnist/trainset')
+    target_train_root = os.path.join(opt.dataroot, 'mnist/trainset')
     target_val_root = os.path.join(opt.dataroot, 'mnist/testset')
     
     transform_source = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
@@ -86,40 +86,25 @@ def main():
 
     source_train = dset.ImageFolder(root=source_train_root, transform=transform_source)
     source_val = dset.ImageFolder(root=source_val_root, transform=transform_source)
-    target_train = dset.ImageFolder(root=target_root, transform=transform_target)
-    target_val = dset.ImageFolder(root=target_val_root, transform=transform_target)
+    target_train = dset.ImageFolder(root=target_train_root, transform=transform_target)
+    target_val = dset.ImageFolder(root=target_val_root, transform=transform_source)
 
-
-    #validation_split = .2
-    
-    # Creating data indices for training and validation splits:
-    #dataset_size = len(source_train)
-    #indices = list(range(dataset_size))
-    #split = int(np.floor(validation_split * dataset_size))
-    #train_indices, val_indices = indices[split:], indices[:split]
-
-    # Creating PT data samplers and loaders:
-    #train_sampler = SubsetRandomSampler(train_indices)
-    #valid_sampler = SubsetRandomSampler(val_indices)
 
     source_trainloader = torch.utils.data.DataLoader(source_train, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
     source_valloader = torch.utils.data.DataLoader(source_val, batch_size=opt.batchSize, shuffle=False, num_workers=2, drop_last=False)
-    targetloader = torch.utils.data.DataLoader(target_train, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
-    target_valloader = torch.utils.data.DataLoader(target_val, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
+    target_trainloader = torch.utils.data.DataLoader(target_train_root, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
+    target_valloader = torch.utils.data.DataLoader(target_val_root, batch_size=opt.batchSize, shuffle=True, num_workers=2, drop_last=True)
 
     nclasses = len(source_train.classes)
     print(nclasses)
     
     # Training
     if opt.method == 'GTA':
-        GTA_trainer = trainer.GTA(opt, nclasses, mean, std, source_trainloader, source_valloader, targetloader)
+        GTA_trainer = trainer.GTA(opt, nclasses, mean, std, source_trainloader, source_valloader, target_trainloader, target_valloader)
         GTA_trainer.train()
     elif opt.method == 'sourceonly':
         sourceonly_trainer = trainer.Sourceonly(opt, nclasses, source_trainloader, source_valloader)
         sourceonly_trainer.train()
-    elif opt.method == 'targetonly':
-        targetonly_trainer = trainer.Targetonly(opt, nclasses, targetloader, target_valloader)
-        targetonly_trainer.train()
     else:
         raise ValueError('method argument should be GTA or sourceonly')
 

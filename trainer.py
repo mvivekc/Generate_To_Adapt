@@ -14,11 +14,12 @@ import utils
 
 class GTA(object):
 
-    def __init__(self, opt, nclasses, mean, std, source_trainloader, source_valloader, targetloader):
+    def __init__(self, opt, nclasses, mean, std, source_trainloader, source_valloader, target_trainloader, target_valloader):
 
         self.source_trainloader = source_trainloader
         self.source_valloader = source_valloader
-        self.targetloader = targetloader
+        self.target_trainloader = target_trainloader
+        self.target_valloader = target_valloader
         self.opt = opt
         self.mean = mean
         self.std = std
@@ -74,12 +75,8 @@ class GTA(object):
     Validation function
     """
 
-    def validateTrain(self, epoch):
-        #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
-        #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/small_target_100spc')
-        #logger = Logger('./logs/digits_32px_2')        
-        #logger = Logger('./logs/validation_accuracies_asl_32px')
+    def trainAcc(self, epoch):
+        logger = Logger('logs/small_target_100spc/train')
         
         self.netF.eval()
         self.netC.eval()
@@ -99,26 +96,18 @@ class GTA(object):
         val_acc = 100*float(correct)/total
         print('%s| Epoch: %d, Train Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
         
-        # ================================================================== #
-        #                        Tensorboard Logging                         #
-        # ================================================================== #
-
-        # 1. Log scalar values (scalar summary)
+        # Tensorboard Logging
         info = { 
 
-            'GTA Train Accuracy': val_acc,
+            'GTA Accuracy': val_acc,
         }
 
         for tag, value in info.items():
             logger.scalar_summary(tag, value, epoch+1)
 
 
-    def validate(self, epoch):
-        #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
-        #logger = Logger('./logs/validation_accuracies_asl_128px')        
-        logger = Logger('../../Generate_To_Adapt/logs/small_target_100spc')
-        #logger = Logger('./logs/digits_32px_2')        
-        #logger = Logger('./logs/validation_accuracies_asl_32px')
+    def validateAcc(self, epoch):
+        logger = Logger('logs/small_target_100spc/val')
         
         self.netF.eval()
         self.netC.eval()
@@ -126,7 +115,7 @@ class GTA(object):
         correct = 0
     
         # Testing the model
-        for i, datas in enumerate(self.source_valloader):
+        for i, datas in enumerate(self.target_valloader):
             inputs, labels = datas         
             inputv, labelv = Variable(inputs.cuda(), volatile=True), Variable(labels.cuda()) 
 
@@ -136,16 +125,12 @@ class GTA(object):
             correct += ((predicted == labels.cuda()).sum())
             
         val_acc = 100*float(correct)/total
-        print('%s| Epoch: %d, Val Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
+        print('%s| Epoch: %d, GTA Val Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
         
-        # ================================================================== #
-        #                        Tensorboard Logging                         #
-        # ================================================================== #
-
-        # 1. Log scalar values (scalar summary)
+        # Tensorboard Logging
         info = { 
 
-            'GTA Val Accuracy': val_acc,
+            'GTA Accuracy': val_acc,
         }
 
         for tag, value in info.items():
@@ -186,7 +171,7 @@ class GTA(object):
             self.netC.train()    
             self.netD.train()    
         
-            for i, (datas, datat) in enumerate(zip(self.source_trainloader, self.targetloader)):
+            for i, (datas, datat) in enumerate(zip(self.source_trainloader, self.target_trainloader)):
                 
                 ###########################
                 # Forming input variables
@@ -301,8 +286,8 @@ class GTA(object):
                     self.optimizerF = utils.exp_lr_scheduler(self.optimizerF, epoch, self.opt.lr, self.opt.lrd, curr_iter)
                     self.optimizerC = utils.exp_lr_scheduler(self.optimizerC, epoch, self.opt.lr, self.opt.lrd, curr_iter)   
 
-            self.validateTrain(epoch+1)
-            self.validate(epoch+1)
+            self.trainAcc(epoch+1)
+            self.validateAcc(epoch+1)
 
 
 class Sourceonly(object):
@@ -356,12 +341,8 @@ class Sourceonly(object):
     """
     Validation function
     """
-    def validate(self, epoch):
-        #logger = Logger('../../Generate_To_Adapt/logs/validation_accuracies_asl_128_actual')
-        #logger = Logger('./logs/validation_accuracies_asl_128px')
-        logger = Logger('../../Generate_To_Adapt/logs/small_target_100spc')
-        #logger = Logger('./logs/digits_32px_2')        
-        #logger = Logger('./logs/validation_accuracies_asl_32px')
+    def validateAcc(self, epoch):
+        logger = Logger('logs/small_target_100spc/val')
         
         self.netF.eval()
         self.netC.eval()
@@ -379,16 +360,12 @@ class Sourceonly(object):
             correct += ((predicted == labels.cuda()).sum())
             
         val_acc = 100*float(correct)/total
-        print('%s| Epoch: %d, Val Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
+        print('%s| Epoch: %d, Sourceonly Val Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
         
-        # ================================================================== #
-        #                        Tensorboard Logging                         #
-        # ================================================================== #
-
-        # 1. Log scalar values (scalar summary)
+        # Tensorboard Logging
         info = { 
 
-            'Sourceonly Val Accuracy': val_acc,
+            'Sourceonly Accuracy': val_acc,
         }
 
         for tag, value in info.items():
@@ -402,10 +379,10 @@ class Sourceonly(object):
             torch.save(self.netF.state_dict(), '%s/models/model_best_netF_sourceonly.pth' %(self.opt.outf))
             torch.save(self.netC.state_dict(), '%s/models/model_best_netC_sourceonly.pth' %(self.opt.outf))
 
-    def validateTrain(self, epoch):
-        logger = Logger('../../Generate_To_Adapt/logs/small_target_100spc')
 
-        self.netF.eval()
+
+    def trainAcc(self, epoch):
+        logger = Logger('logs/small_target_100spc/train')
         self.netC.eval()
         total = 0
         correct = 0
@@ -423,14 +400,10 @@ class Sourceonly(object):
         val_acc = 100*float(correct)/total
         print('%s| Epoch: %d, Train Accuracy: %f %%' % (datetime.datetime.now(), epoch, val_acc))
         
-        # ================================================================== #
-        #                        Tensorboard Logging                         #
-        # ================================================================== #
-
-        # 1. Log scalar values (scalar summary)
+        # Tensorboard Logging
         info = { 
 
-            'Sourceonly Train Accuracy': val_acc,
+            'Sourceonly Accuracy': val_acc,
         }    
 
         for tag, value in info.items():
@@ -486,6 +459,5 @@ class Sourceonly(object):
             
             # Validate every epoch
 
-            self.validateTrain(epoch)
-
-            self.validate(epoch)
+            self.trainAcc(epoch)
+            self.validateAcc(epoch)
