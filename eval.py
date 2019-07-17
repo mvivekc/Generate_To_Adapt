@@ -39,7 +39,7 @@ def main():
     mean = np.array([0.44, 0.44, 0.44])
     std = np.array([0.19, 0.19, 0.19])
 
-    target_root = os.path.join(opt.dataroot, 'mnist/trainset')
+    target_root = os.path.join(opt.dataroot, 'mnist/testset')
 
     transform_target = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
     target_test = dset.ImageFolder(root=target_root, transform=transform_target)

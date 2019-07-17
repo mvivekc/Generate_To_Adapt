@@ -54,7 +54,7 @@ class _netD(nn.Module):
         super(_netD, self).__init__()
         
         self.ndf = opt.ndf
-        self.feature = nn.Sequential(
+        layers = [
             nn.Conv2d(3, self.ndf, 3, 1, 1),            
             nn.BatchNorm2d(self.ndf),
             nn.LeakyReLU(0.2, inplace=True),
@@ -74,43 +74,55 @@ class _netD(nn.Module):
             nn.Conv2d(self.ndf*4, self.ndf*2, 3, 1, 1),           
             nn.BatchNorm2d(self.ndf*2),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
-
-            #required for 64
-
+            nn.MaxPool2d(4,4)
+        ]
+        #required for 64,
+        block_64 = [
+            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
+            nn.BatchNorm2d(self.ndf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(4,4)
+        ]
+        #required for 128
+        block_128 = [
+            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
+            nn.BatchNorm2d(self.ndf*2),
+            nn.LeakyReLU(0.2, inplace=True),
+            nn.MaxPool2d(4,4)
+        ]
+        #required for 256
+        block_256 = [
             nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
             nn.BatchNorm2d(self.ndf*2),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(4,4),
-            #required for 128
-
+        ]
+        #required for 512
+        block_512 = [
             nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
             nn.BatchNorm2d(self.ndf*2),
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(4,4),
-            #required for 256
-
-            nn.Conv2d(self.ndf*2, self.ndf*2, 2, 1,1),
-            nn.BatchNorm2d(self.ndf*2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.MaxPool2d(4,4),
-        )
+        ]
+        if self.opt.imageSize > 32:
+            layers.extend(block_64)
+        if self.opt.imageSize > 64:
+            layers.extend(block_128)
+        if self.opt.imageSize > 128:
+            layers.extend(block_256)
+        #if self.opt.imageSize > 256:
+        #    layers.extend(block_512)
+        self.feature = nn.Sequential(*layers)
         self.classifier_c = nn.Sequential(nn.Linear(self.ndf*2, nclasses))              
         self.classifier_s = nn.Sequential(
         						nn.Linear(self.ndf*2, 1), 
         						nn.Sigmoid())
 
-    def forward(self, input):       
-        #print("input D .shape:")
-        #print(input.shape)
+    def forward(self, input):
         output = self.feature(input)
         output_s = self.classifier_s(output.view(-1, self.ndf*2))
         output_s = output_s.view(-1)
-        #print("D: output_s.shape:")
-        #print(output_s.shape)
         output_c = self.classifier_c(output.view(-1, self.ndf*2))
-        #print("D: output_c.shape:")
-        #print(output_c.shape)
         return output_s, output_c
 
 """
@@ -119,15 +131,8 @@ Feature extraction network
 class _netF(nn.Module):
     def __init__(self, opt):
         super(_netF, self).__init__()
-        #print("NetF init")
         self.ndf = opt.ndf
-        #print("NetF details:")
-        #print(3, self.ndf)
-        #print(self.ndf, self.ndf)
-        #print(self.ndf, self.ndf*2)
-        #print("for 64, we do ")
-        #print(self.ndf * 2, self.ndf*2)
-        self.feature = nn.Sequential(
+        layers = [
             #inp,out,kernel,stride,padding
             nn.Conv2d(3, self.ndf, 5, 1, 0),
             nn.ReLU(inplace=True),
@@ -139,38 +144,45 @@ class _netF(nn.Module):
                     
             nn.Conv2d(self.ndf, self.ndf*2, 5, 1,0),
             nn.ReLU(inplace=True),
-
+        ]
+        block_64 = [
             # added this block to reduce conv size to (nfinput nfoutput 1 1)
+            #need for 64
             nn.MaxPool2d(2, 2),
-
             nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
             nn.ReLU(inplace=True),
+        ]
+        block_128 = [
             #required for 128
             nn.MaxPool2d(2, 2),
-
-            nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
-            nn.ReLU(inplace=True),
-            #required for 256
-            nn.MaxPool2d(2, 2),
-
             nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
             nn.ReLU(inplace=True)
+        ]
+        block_256 = [
+            #required for 256
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
+            nn.ReLU(inplace=True)
+        ]
+        block_512 = [
+            #required for 512
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
+            nn.ReLU(inplace=True)
+        ]
+        if self.opt.imageSize > 32:
+            layers.extend(block_64)
+        if self.opt.imageSize > 64:
+            layers.extend(block_128)
+        if self.opt.imageSize > 128:
+            layers.extend(block_256)
+        #if self.opt.imageSize > 256:
+        #    layers.extend(block_512)
+        self.feature = nn.Sequential(*layers)
 
 
-        )
-
-
-    def forward(self, input):  
-        # print("NetF forward")
-        # print(input.shape)
-        #output = self.feature(input)
-        #print("printing F input shape")
-        #print(input.shape)
-        #print(self.ndf)
+    def forward(self, input):
         output = self.feature(input)
-        #print("printing F output shape")
-        #print(output.shape)
-        #return output
         return output.view(-1, 2*self.ndf)
 
 
@@ -188,12 +200,7 @@ class _netC(nn.Module):
            nn.Linear(2*self.ndf, nclasses),                         
        )
 
-    def forward(self, input):       
-        #print("NetC input forward")
-        #print(input.shape)
-        #output = self.main(input)
-        #print("printing C output shape")
+    def forward(self, input):
         output = self.main(input)
-        #print(output.shape)
         return output
 
