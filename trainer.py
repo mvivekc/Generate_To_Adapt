@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable, Function
 import os
+import os.path
 import torch.optim as optim
 import torchvision.utils as vutils
 import itertools, datetime
@@ -39,14 +40,20 @@ class GTA(object):
         self.netC.apply(utils.weights_init)
 
         if opt.loadExisting != 0: 
-            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
-            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
-            netG_path = os.path.join(opt.checkpoint_dir, 'netG.pth')
-            netD_path = os.path.join(opt.checkpoint_dir, 'netD.pth')
-            self.netF.load_state_dict(torch.load(netF_path))
-            self.netC.load_state_dict(torch.load(netC_path))
-            self.netG.load_state_dict(torch.load(netG_path))
-            self.netD.load_state_dict(torch.load(netD_path))        
+
+            netF_path = os.path.join(opt.checkpoint_dir, 'model_best_netF_sourceonly.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'model_best_netC_sourceonly.pth')
+
+            netG_path = os.path.join(opt.checkpoint_dir, 'model_best_netG.pth')
+            netD_path = os.path.join(opt.checkpoint_dir, 'model_best_netD.pth')
+            if os.path.isfile(netF_path):
+                self.netF.load_state_dict(torch.load(netF_path))
+            if os.path.isfile(netC_path):
+                self.netC.load_state_dict(torch.load(netC_path))
+            if os.path.isfile(netG_path):
+                self.netG.load_state_dict(torch.load(netG_path))
+            if os.path.isfile(netD_path):
+                self.netD.load_state_dict(torch.load(netD_path))        
 
 
         # Defining loss criterions
@@ -321,8 +328,11 @@ class Sourceonly(object):
         if opt.loadExisting != 0: 
             netF_path = os.path.join(opt.checkpoint_dir, 'model_best_netF_sourceonly.pth')
             netC_path = os.path.join(opt.checkpoint_dir, 'model_best_netC_sourceonly.pth')
-            self.netF.load_state_dict(torch.load(netF_path))
-            self.netC.load_state_dict(torch.load(netC_path))
+
+            if os.path.isfile(netF_path):
+                self.netF.load_state_dict(torch.load(netF_path))
+            if os.path.isfile(netC_path):
+                self.netC.load_state_dict(torch.load(netC_path))
         
 
         # Defining loss criterions
