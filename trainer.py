@@ -319,8 +319,8 @@ class Sourceonly(object):
 
 
         if opt.loadExisting != 0: 
-            netF_path = os.path.join(opt.checkpoint_dir, 'netF.pth')
-            netC_path = os.path.join(opt.checkpoint_dir, 'netC.pth')
+            netF_path = os.path.join(opt.checkpoint_dir, 'model_best_netF_sourceonly.pth')
+            netC_path = os.path.join(opt.checkpoint_dir, 'model_best_netC_sourceonly.pth')
             self.netF.load_state_dict(torch.load(netF_path))
             self.netC.load_state_dict(torch.load(netC_path))
         

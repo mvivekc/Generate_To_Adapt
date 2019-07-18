@@ -104,13 +104,13 @@ class _netD(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
             nn.MaxPool2d(4,4),
         ]
-        if self.opt.imageSize > 32:
+        if opt.imageSize > 32:
             layers.extend(block_64)
-        if self.opt.imageSize > 64:
+        if opt.imageSize > 64:
             layers.extend(block_128)
-        if self.opt.imageSize > 128:
+        if opt.imageSize > 128:
             layers.extend(block_256)
-        #if self.opt.imageSize > 256:
+        #if opt.imageSize > 256:
         #    layers.extend(block_512)
         self.feature = nn.Sequential(*layers)
         self.classifier_c = nn.Sequential(nn.Linear(self.ndf*2, nclasses))              
@@ -170,13 +170,13 @@ class _netF(nn.Module):
             nn.Conv2d(self.ndf * 2, self.ndf*2, 4, 1,0),
             nn.ReLU(inplace=True)
         ]
-        if self.opt.imageSize > 32:
+        if opt.imageSize > 32:
             layers.extend(block_64)
-        if self.opt.imageSize > 64:
+        if opt.imageSize > 64:
             layers.extend(block_128)
-        if self.opt.imageSize > 128:
+        if opt.imageSize > 128:
             layers.extend(block_256)
-        #if self.opt.imageSize > 256:
+        #if opt.imageSize > 256:
         #    layers.extend(block_512)
         self.feature = nn.Sequential(*layers)
 
