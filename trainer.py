@@ -311,6 +311,13 @@ class Sourceonly(object):
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
 
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+            self.netF = nn.DataParallel(self.netF)
+            self.netC = nn.DataParallel(self.netC)
+
+
         #print(self.netF)
         #print(self.netC)
         # for i, weights in enumerate(list(self.netF.parameters())):

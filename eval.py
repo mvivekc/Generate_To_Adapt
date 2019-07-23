@@ -32,9 +32,7 @@ def main():
     cudnn.benchmark = True
     if torch.cuda.is_available() and opt.gpu == -1:
         print("WARNING: You have a CUDA device, so you should probably run with --gpu [gpu id]")
-    if opt.gpu>=0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.gpu)
-
+    
     # Creating data loaders
     mean = np.array([0.44, 0.44, 0.44])
     std = np.array([0.19, 0.19, 0.19])
@@ -51,6 +49,13 @@ def main():
     
     netF = models._netF(opt)
     netC = models._netC(opt, nclasses)
+
+
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        netF = nn.DataParallel(netF)
+        netC = nn.DataParallel(netC)
     
     if opt.method == 'GTA':
         if opt.model_best == 0: 

@@ -70,8 +70,8 @@ def main():
     cudnn.benchmark = True
     if torch.cuda.is_available() and opt.gpu == -1:
         print("WARNING: You have a CUDA device, so you should probably run with --gpu [gpu id]")
-    if opt.gpu>=0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.gpu)
+    #if opt.gpu>=0:
+        #os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.gpu)
 
     # Creating data loaders
     mean = np.array([0.44, 0.44, 0.44])
