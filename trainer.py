@@ -33,6 +33,14 @@ class GTA(object):
         self.netF = models._netF(opt)
         self.netC = models._netC(opt, nclasses)
 
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+            self.netG = nn.DataParallel(self.netG)
+            self.netD = nn.DataParallel(self.netD)
+            self.netF = nn.DataParallel(self.netF)
+            self.netC = nn.DataParallel(self.netC)
+
         # Weight initialization
         self.netG.apply(utils.weights_init)
         self.netD.apply(utils.weights_init)
