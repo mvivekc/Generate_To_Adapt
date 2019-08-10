@@ -16,7 +16,7 @@ def main():
     parser.add_argument('--dataroot', required=True, help='path to source dataset')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
-    parser.add_argument('--imageSize', type=int, default=32, help='the height / width of the input image to network')
+    parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
     parser.add_argument('--nz', type=int, default=512, help='size of the latent z vector')
     parser.add_argument('--ngf', type=int, default=64, help='Number of filters to use in the generator network')
     parser.add_argument('--ndf', type=int, default=64, help='Number of filters to use in the discriminator network')
@@ -24,6 +24,7 @@ def main():
     parser.add_argument('--checkpoint_dir', default='results/models', help='folder to load model checkpoints from')
     parser.add_argument('--method', default='GTA', help='Method to evaluate| GTA, sourceonly')
     parser.add_argument('--model_best', type=int, default=0, help='Flag to specify whether to use the best validation model or last checkpoint| 1-model best, 0-current checkpoint')
+    parser.add_argument('--load_from_existing', type=int, default=0, help='Load existing model and resume training')
 
     opt = parser.parse_args()
 
@@ -31,14 +32,12 @@ def main():
     cudnn.benchmark = True
     if torch.cuda.is_available() and opt.gpu == -1:
         print("WARNING: You have a CUDA device, so you should probably run with --gpu [gpu id]")
-    if opt.gpu>=0:
-        os.environ['CUDA_VISIBLE_DEVICES'] = str(opt.gpu)
-
+    
     # Creating data loaders
     mean = np.array([0.44, 0.44, 0.44])
     std = np.array([0.19, 0.19, 0.19])
 
-    target_root = os.path.join(opt.dataroot, 'mnist/trainset')
+    target_root = os.path.join(opt.dataroot, 'mnist/testset')
 
     transform_target = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
     target_test = dset.ImageFolder(root=target_root, transform=transform_target)
@@ -50,6 +49,13 @@ def main():
     
     netF = models._netF(opt)
     netC = models._netC(opt, nclasses)
+
+
+    if torch.cuda.device_count() > 1:
+        print("Let's use", torch.cuda.device_count(), "GPUs!")
+        # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+        netF = nn.DataParallel(netF)
+        netC = nn.DataParallel(netC)
     
     if opt.method == 'GTA':
         if opt.model_best == 0: 
