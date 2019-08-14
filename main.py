@@ -19,6 +19,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataroot', required=True, help='path to source dataset')
+    parser.add_argument('--datasrc', default='svhn', help='path to source dataset')
+    parser.add_argument('--datadest', default='mnist', help='path to destination dataset')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
     parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
@@ -77,10 +79,10 @@ def main():
     mean = np.array([0.44, 0.44, 0.44])
     std = np.array([0.19, 0.19, 0.19])
 
-    source_train_root = os.path.join(opt.dataroot, 'svhn/trainset')
-    source_val_root = os.path.join(opt.dataroot, 'svhn/testset')
-    target_train_root = os.path.join(opt.dataroot, 'mnist/trainset')
-    target_val_root = os.path.join(opt.dataroot, 'mnist/testset')
+    source_train_root = os.path.join(opt.dataroot, '%s/trainset' %(opt.datasrc))
+    source_val_root = os.path.join(opt.dataroot, '%s/testset' %(opt.datasrc))
+    target_train_root = os.path.join(opt.dataroot, '%s/trainset' %(opt.datadest))
+    target_val_root = os.path.join(opt.dataroot, '%s/testset' %(opt.datadest))
     
     transform_source = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
     transform_target = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
@@ -108,6 +110,9 @@ def main():
         GTA_trainer.train()
     elif opt.method == 'sourceonly':
         sourceonly_trainer = trainer.Sourceonly(opt, nclasses, source_trainloader, source_valloader)
+        sourceonly_trainer.train()
+    elif opt.method == 'targetonly':
+        sourceonly_trainer = trainer.Sourceonly(opt, nclasses, target_trainloader, target_valloader)
         sourceonly_trainer.train()
     else:
         raise ValueError('method argument should be GTA or sourceonly')

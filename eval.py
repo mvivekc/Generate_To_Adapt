@@ -14,6 +14,8 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataroot', required=True, help='path to source dataset')
+    parser.add_argument('--datasrc', default='mnist', help='path to source dataset')
+    parser.add_argument('--datadest', default='svhn', help='path to destination dataset')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
     parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
     parser.add_argument('--imageSize', type=int, default=256, help='the height / width of the input image to network')
@@ -37,7 +39,7 @@ def main():
     mean = np.array([0.44, 0.44, 0.44])
     std = np.array([0.19, 0.19, 0.19])
 
-    target_root = os.path.join(opt.dataroot, 'mnist/testset')
+    target_root = os.path.join(opt.dataroot, '%s/testset' %(opt.datadest))
 
     transform_target = transforms.Compose([transforms.Resize(opt.imageSize), transforms.ToTensor(), transforms.Normalize(mean,std)])
     target_test = dset.ImageFolder(root=target_root, transform=transform_target)
